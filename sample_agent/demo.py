@@ -8,11 +8,11 @@ from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langchain_core.runnables.config import RunnableConfig
 
 from sample_agent.agent import graph
-from sample_agent.events import (AgentChoiceEvent,
-                                 ErrorEvent, PartialToolCallEvent,
-                                 StreamStartedEvent, StreamStoppedEvent,
-                                 TokenUsageEvent, ToolCallEvent,
-                                 ToolCallResponseEvent, UserMessageEvent)
+from sample_agent.events import (AgentChoiceEvent, ErrorEvent,
+                                 PartialToolCallEvent, StreamStartedEvent,
+                                 StreamStoppedEvent, TokenUsageEvent,
+                                 ToolCallEvent, ToolCallResponseEvent,
+                                 UserMessageEvent)
 
 app = FastAPI()
 
@@ -237,8 +237,6 @@ async def stream_graph_execution(
         # Track partial tool call state to maintain ID and name across chunks
         partial_tool_call_state: Dict[str, Any] = {}
 
-        # messages = graph_input.get("messages", [])
-        # if messages:
         last_message = messages[-1]
         content = last_message["content"]
 
