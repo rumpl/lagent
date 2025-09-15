@@ -41,7 +41,7 @@ async def _handle_tool_message(
             "type": "function",
             "function": {
                 "name": tool_name,
-                "arguments": {}
+                "arguments": ""
             }
         }
 
