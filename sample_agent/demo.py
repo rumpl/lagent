@@ -1,5 +1,5 @@
 import os
-from typing import Any, AsyncGenerator, Dict, List, Union
+from typing import Any, AsyncGenerator, Dict, Union
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -23,7 +23,7 @@ async def _handle_tool_message(
 ) -> AsyncGenerator[str, None]:
     """
     Handle ToolMessage responses and emit ToolCallResponseEvent.
-    
+
     This function processes tool execution results and emits the appropriate
     ToolCallResponseEvent according to the specification.
     """
@@ -32,7 +32,7 @@ async def _handle_tool_message(
         tool_call_id = getattr(tool_message, 'tool_call_id', '')
         content = getattr(tool_message, 'content', '')
         tool_name = getattr(tool_message, 'name', '')
-        
+
         # We need to reconstruct the tool call information
         # For a complete tool call, we need to get the arguments from the agent state or context
         # Since the tool was executed, we know we have complete arguments
@@ -98,7 +98,6 @@ async def _handle_node_output(
     - TokenUsageEvent for token usage information
     - ErrorEvent for any errors during processing
     """
-    print(node_output)
     try:
         if partial_tool_call_state is None:
             partial_tool_call_state = {}
@@ -121,9 +120,7 @@ async def _handle_node_output(
         tool_calls = []
 
         if hasattr(node_output, 'additional_kwargs') and node_output.additional_kwargs:
-            print("additional_kwargs")
             if 'tool_calls' in node_output.additional_kwargs:
-                print("tool_calls")
                 tool_calls = node_output.additional_kwargs['tool_calls']
 
         # Try the standard tool_calls attribute
