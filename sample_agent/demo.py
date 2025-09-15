@@ -9,6 +9,7 @@ from langchain_core.messages import (AIMessage, AIMessageChunk, HumanMessage,
                                      ToolMessage)
 from langchain_core.runnables.config import RunnableConfig
 
+from sample_agent import agent
 from sample_agent.agent import AgentState, graph
 
 
@@ -367,7 +368,7 @@ async def _handle_node_output(
 
 
 async def stream_graph_execution(
-    graph_input: AgentState,
+    messages: AgentState,
     thread_id: str = "default",
     agent_name: str = "sample_agent"
 ) -> AsyncGenerator[str, None]:
@@ -382,23 +383,13 @@ async def stream_graph_execution(
     """
 
     try:
-        messages = graph_input.get("messages", [])
-        if messages:
-            last_message = messages[-1]
-            content = ""
+        # messages = graph_input.get("messages", [])
+        # if messages:
+        last_message = messages[-1]
+        content = last_message["content"]
 
-            if isinstance(last_message, HumanMessage):
-                content = last_message.text()
-            elif isinstance(last_message, dict):
-                if last_message.get("type") == "human":
-                    content = last_message.get("content", "")
-                elif "content" in last_message:
-                    content = last_message["content"]
-            elif hasattr(last_message, 'content'):
-                content = str(last_message.content)
-
-            if content:
-                yield UserMessageEvent(message=content).to_sse()
+        if content:
+            yield UserMessageEvent(message=content).to_sse()
 
         yield StreamStartedEvent(agent_name=agent_name).to_sse()
 
@@ -407,7 +398,7 @@ async def stream_graph_execution(
         }
 
         # Stream the graph execution
-        async for chunk in graph.astream(graph_input, config=config, stream_mode="messages"):
+        async for chunk in graph.astream({"messages": messages}, config=config, stream_mode="messages"):
             try:
                 print(chunk)
                 (c, meta) = chunk
@@ -463,9 +454,14 @@ async def run_handler(request: Request) -> StreamingResponse:
             }
         )
 
-    # Extract thread ID from request
-    thread_id = body.get("thread_id", "default")
-    agent_name = body.get("agent_name", "sample_agent")
+    # print(body)
+
+    # # Extract thread ID from request
+    # thread_id = body.get("thread_id", "default")
+    # agent_name = body.get("agent_name", "sample_agent")
+
+    thread_id =" default"
+    agent_name = "root"
 
     # Create the streaming response
     return StreamingResponse(
@@ -492,13 +488,12 @@ def create_session_handler():
     return sessions[session_id]
 
 
-app.add_api_route("/cagent/agents", agents_handler, methods=["GET"])
-app.add_api_route("/cagent/sessions", create_session_handler, methods=["POST"])
-app.add_api_route("/cagent", run_handler, methods=["POST"])
+app.add_api_route("/api/agents", agents_handler, methods=["GET"])
+app.add_api_route("/api/sessions", create_session_handler, methods=["POST"])
+app.add_api_route("/api/sessions/{id}/agent/{name}", run_handler, methods=["POST"])
 
 def main():
     """Run the uvicorn server."""
-    print("ASDFASDFASDFASDFS")
     port = int(os.getenv("PORT", "8000"))
     uvicorn.run(
         "sample_agent.demo:app",
