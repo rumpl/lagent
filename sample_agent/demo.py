@@ -512,34 +512,9 @@ async def stream_graph_execution(
             try:
                 (c, meta) = chunk
 
-                # Handle different message types
                 if isinstance(c, (AIMessageChunk, AIMessage)):
-                    # Check if this message has complete tool calls that we should emit as ToolCallEvent
-                    if hasattr(c, 'tool_calls') and c.tool_calls:
-                        for tool_call in c.tool_calls:
-                            tool_call_id = getattr(tool_call, 'id', '')
-                            if tool_call_id and tool_call_id not in accumulated_tool_calls:
-                                # This is a new complete tool call
-                                tool_call_dict = {
-                                    "id": tool_call_id,
-                                    "type": "function",
-                                    "function": {
-                                        "name": getattr(tool_call, 'name', ''),
-                                        "arguments": getattr(tool_call, 'args', {})
-                                    }
-                                }
-
-                                accumulated_tool_calls[tool_call_id] = tool_call_dict
-
-                                yield ToolCallEvent(
-                                    tool_call=tool_call_dict,
-                                    agent_name=agent_name
-                                ).to_sse()
-
-                    # Handle the regular node output (partial tool calls, content, etc.)
                     async for event_data in _handle_node_output(c, agent_name, partial_tool_call_state):
                         yield event_data
-
                 elif isinstance(c, ToolMessage):
                     async for event_data in _handle_tool_message(c, agent_name):
                         yield event_data
