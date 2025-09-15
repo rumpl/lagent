@@ -16,23 +16,6 @@ from sample_agent.events import (AgentChoiceEvent, AgentChoiceReasoningEvent,
 
 app = FastAPI()
 
-class SSEEventEmitter:
-    """Helper class for emitting SSE events during graph execution."""
-
-    def __init__(self, agent_name: str = "sample_agent"):
-        self.agent_name = agent_name
-        self.events: List[BaseEvent] = []
-
-    def emit_event(self, event: BaseEvent) -> None:
-        """Add an event to the event list."""
-        if not event.agent_name and hasattr(event, 'agent_name'):
-            event.agent_name = self.agent_name
-        self.events.append(event)
-
-    def get_events(self) -> List[BaseEvent]:
-        """Get all collected events."""
-        return self.events.copy()
-
 
 async def _handle_tool_message(
     tool_message: ToolMessage,
