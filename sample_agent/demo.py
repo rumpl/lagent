@@ -55,6 +55,7 @@ async def _handle_tool_message(
                 tool_call_dict["function"]["arguments"] = tool_message.additional_kwargs['arguments']
 
         # Emit the complete tool call event first (since tool was executed, arguments must be complete)
+        # TODO: This event should be called _just_ before the tool is executed.
         if tool_call_dict["id"] and tool_call_dict["function"]["name"]:
             yield ToolCallEvent(
                 tool_call=tool_call_dict,
