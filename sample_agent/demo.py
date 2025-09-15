@@ -1,5 +1,5 @@
 import os
-from typing import Any, AsyncGenerator, Dict, Union
+from typing import Any, AsyncGenerator, Dict, List, Union
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -9,7 +9,7 @@ from langchain_core.runnables.config import RunnableConfig
 
 from sample_agent.agent import AgentState, graph
 from sample_agent.events import (AgentChoiceEvent, AgentChoiceReasoningEvent,
-                                 BaseEvent, ErrorEvent, PartialToolCallEvent,
+                                 ErrorEvent, PartialToolCallEvent,
                                  StreamStartedEvent, StreamStoppedEvent,
                                  TokenUsageEvent, ToolCallEvent,
                                  ToolCallResponseEvent, UserMessageEvent)
@@ -36,7 +36,7 @@ async def _handle_tool_message(
         # We need to reconstruct the tool call information
         # For a complete tool call, we need to get the arguments from the agent state or context
         # Since the tool was executed, we know we have complete arguments
-        tool_call_dict = {
+        tool_call_dict: Dict[str, Any] = {
             "id": tool_call_id,
             "type": "function",
             "function": {
@@ -53,11 +53,6 @@ async def _handle_tool_message(
             # Sometimes the arguments might be stored here
             if 'arguments' in tool_message.additional_kwargs:
                 tool_call_dict["function"]["arguments"] = tool_message.additional_kwargs['arguments']
-
-        # Check for metadata with tool call info
-        if hasattr(tool_message, 'metadata') and tool_message.metadata:
-            if 'tool_call' in tool_message.metadata:
-                tool_call_dict.update(tool_message.metadata['tool_call'])
 
         # Emit the complete tool call event first (since tool was executed, arguments must be complete)
         if tool_call_dict["id"] and tool_call_dict["function"]["name"]:
@@ -85,7 +80,7 @@ async def _handle_tool_message(
 async def _handle_node_output(
     node_output: Union[AIMessageChunk, AIMessage], 
     agent_name: str,
-    partial_tool_call_state: Dict[str, Any] = None
+    partial_tool_call_state: Dict[str, Any] | None = None
 ) -> AsyncGenerator[str, None]:
     """
     Handle outputs from the chat node and emit appropriate events based on the specification.
@@ -109,12 +104,7 @@ async def _handle_node_output(
                 agent_name=agent_name
             ).to_sse()
 
-        # Handle reasoning content (for models like o1 that support reasoning)
-        if hasattr(node_output, 'reasoning') and node_output.reasoning:
-            yield AgentChoiceReasoningEvent(
-                content=node_output.reasoning,
-                agent_name=agent_name
-            ).to_sse()
+        # TODO: Handle reasoning content if available
 
         # Handle tool calls - check different possible attributes
         tool_calls = []
@@ -126,10 +116,6 @@ async def _handle_node_output(
         # Try the standard tool_calls attribute
         elif hasattr(node_output, 'tool_calls') and node_output.tool_calls:
             tool_calls = node_output.tool_calls
-
-        # Try tool_call_chunks for streaming
-        elif hasattr(node_output, 'tool_call_chunks') and node_output.tool_call_chunks:
-            tool_calls = node_output.tool_call_chunks
 
         for i, tool_call in enumerate(tool_calls):
             tool_call_id = ""
@@ -202,10 +188,6 @@ async def _handle_node_output(
                 "total_tokens": getattr(node_output.usage_metadata, 'total_tokens', 0)
             }
 
-            # Add cost if available
-            if hasattr(node_output.usage_metadata, 'cost'):
-                usage_data["cost"] = node_output.usage_metadata.cost
-
             yield TokenUsageEvent(
                 usage=usage_data,
                 agent_name=agent_name
@@ -237,7 +219,7 @@ async def _handle_node_output(
 
 
 async def stream_graph_execution(
-    messages: AgentState,
+    messages: List[Any],
     thread_id: str = "default",
     agent_name: str = "sample_agent"
 ) -> AsyncGenerator[str, None]:
@@ -252,10 +234,8 @@ async def stream_graph_execution(
     """
 
     try:
-        # Track tool calls as they're being built
-        accumulated_tool_calls = {}
         # Track partial tool call state to maintain ID and name across chunks
-        partial_tool_call_state = {}
+        partial_tool_call_state: Dict[str, Any] = {}
 
         # messages = graph_input.get("messages", [])
         # if messages:
