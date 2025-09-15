@@ -42,9 +42,7 @@ EXPOSE 8000
 # Set default environment variables
 ENV PORT=8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/cagent/agents || exit 1
+LABEL com.docker.agent.models="openai/gpt-4o"
 
 # Run the application
 CMD ["python", "-m", "sample_agent.demo"]
