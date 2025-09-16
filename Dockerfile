@@ -43,6 +43,11 @@ EXPOSE 8000
 ENV PORT=8000
 
 LABEL com.docker.agent.models="openai/gpt-4o"
+LABEL com.docker.agent.packaging.version="v0.0.1"
+LABEL com.docker.agent.runtime="langchain"
+LABEL org.opencontainers.image.author="rumpl"
+LABEL org.opencontainers.image.created="2025-09-16T09:17:39Z"
+LABEL org.opencontainers.image.description="Demo of Docker Agent Engine with Langchain"
 
 # Run the application
 CMD ["python", "-m", "sample_agent.demo"]
