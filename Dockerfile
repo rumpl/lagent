@@ -50,4 +50,6 @@ LABEL org.opencontainers.image.created="2025-09-16T09:17:39Z"
 LABEL org.opencontainers.image.description="Demo of Docker Agent Engine with Langchain"
 
 # Run the application
-CMD ["python", "-m", "sample_agent.demo"]
+ENV PYTHONPATH=/app
+ENTRYPOINT ["python"]
+CMD ["-m", "sample_agent.demo"]
